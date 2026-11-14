@@ -140,12 +140,21 @@ h2{font-size:clamp(20px,4.5vw,27px);font-weight:800;margin-bottom:6px}
   </div>
 </div>
 
+<div class="screen" id="sDept">
+  <div class="panel">
+    <h2 id="deptTitle">اختار قسمك</h2>
+    <p class="sub">بأي قسم أنت؟</p>
+    <div class="grid" id="deptGrid"></div>
+    <div class="row"><button class="btn ghost" data-back="sCollege">→ رجوع</button></div>
+  </div>
+</div>
+
 <div class="screen" id="sStage">
   <div class="panel">
     <h2 id="stageTitle">اختار مرحلتك</h2>
     <p class="sub">بأي مرحلة أنت؟</p>
     <div class="stages" id="stageGrid"></div>
-    <div class="row"><button class="btn ghost" data-back="sCollege">→ رجوع</button></div>
+    <div class="row"><button class="btn ghost" id="stageBack">→ رجوع</button></div>
   </div>
 </div>
 
@@ -522,6 +531,147 @@ window.GAME_DATA = {
   }
 };
 
+/* =====================================================================
+   الأقسام: كل كلية إلها قائمة أقسام. اللاعب يختار: الكلية ← القسم ← المرحلة.
+   - الكلية اللي ما إلها أقسام هنا (أو إلها قسم واحد) تروح مباشرة للمراحل.
+   - أسئلة القسم: q = أسئلة عامة للقسم، وتكدر تضيف أسئلة حسب المرحلة هيج:
+       1: [ {q:"...", a:["صح","خطأ","خطأ","خطأ"]} ], 2: [ ... ]
+   - stages (اختياري) يغيّر عدد مراحل القسم.
+   - أسئلة الكلية تبقى تطلع وية أسئلة القسم.
+   ===================================================================== */
+window.GAME_DATA.departments = {
+  healthtech: [
+    { id:"pathology", name:"قسم التحليلات المرضية", q:[
+      { q:"الخلايا المسؤولة عن تخثر الدم؟", a:["الصفيحات الدموية","كريات الدم الحمر","الخلايا اللمفاوية","الخلايا القاعدية"] },
+      { q:"جهاز فصل مكونات الدم حسب الكثافة؟", a:["جهاز الطرد المركزي","المجهر","الحاضنة","جهاز التعقيم"] },
+      { q:"صبغة كرام تُستخدم لتصنيف؟", a:["البكتيريا","الفيروسات","الفطريات فقط","كريات الدم"] } ] },
+    { id:"radiology", name:"قسم تقنيات الأشعة", q:[
+      { q:"مكتشف الأشعة السينية؟", a:["رونتجن","ماري كوري","نيوتن","أديسون"] },
+      { q:"جهاز الرنين المغناطيسي يعتمد على؟", a:["مجال مغناطيسي وموجات راديوية","الأشعة السينية","الموجات فوق الصوتية","أشعة غاما"] },
+      { q:"السونار يعتمد على؟", a:["الموجات فوق الصوتية","الأشعة السينية","المجال المغناطيسي","الأشعة تحت الحمراء"] } ] },
+    { id:"anesthesia", name:"قسم تقنيات التخدير", q:[
+      { q:"جهاز قياس نسبة الأوكسجين بالدم من الإصبع؟", a:["Pulse Oximeter","ECG","Spirometer","Glucometer"] },
+      { q:"التخدير الذي يُفقد المريض وعيه بالكامل؟", a:["التخدير العام","التخدير الموضعي","التخدير النصفي","التخدير السطحي"] },
+      { q:"النسبة الطبيعية لتشبع الأوكسجين تقريباً؟", a:["95% - 100%","70% - 80%","50% - 60%","80% - 85%"] } ] },
+    { id:"optics", name:"قسم تقنيات البصريات", q:[
+      { q:"قصر النظر يُصحَّح بعدسة؟", a:["مقعرة","محدبة","أسطوانية فقط","مستوية"] },
+      { q:"طول النظر يُصحَّح بعدسة؟", a:["محدبة","مقعرة","مستوية","منشورية"] },
+      { q:"الجزء الملوّن من العين؟", a:["القزحية","الشبكية","القرنية","العدسة"] } ] },
+    { id:"physio", name:"قسم العلاج الطبيعي", q:[
+      { q:"أكبر عضلة في جسم الإنسان؟", a:["العضلة الألوية الكبرى","العضلة ذات الرأسين","عضلة القلب","العضلة الصدرية"] },
+      { q:"عدد عظام جسم الإنسان البالغ؟", a:["206","300","180","250"] },
+      { q:"الوتر الذي يربط عضلة الساق بعظم الكعب؟", a:["وتر أخيل","الوتر الرضفي","وتر الكتف","الرباط الصليبي"] } ] }
+  ],
+  engineering: [
+    { id:"civil", name:"قسم الهندسة المدنية", q:[
+      { q:"المادة الرابطة الأساسية في الخرسانة؟", a:["الإسمنت","الرمل","الحصى","الجبس"] },
+      { q:"الخرسانة قوية في مقاومة؟", a:["الضغط","الشد","الالتواء","القص فقط"] },
+      { q:"لماذا يوضع حديد التسليح في الخرسانة؟", a:["لمقاومة الشد","لتقليل الوزن","للزينة","لتسريع الجفاف"] } ] },
+    { id:"computer_eng", name:"قسم هندسة الحاسوب", q:[
+      { q:"وحدة المعالجة المركزية تُختصر؟", a:["CPU","RAM","ROM","GPU"] },
+      { q:"البوابة المنطقية التي تُخرج 1 إذا كان المدخلان 1 فقط؟", a:["AND","OR","XOR","NOT"] },
+      { q:"الذاكرة التي تُمسح عند إطفاء الجهاز؟", a:["RAM","ROM","القرص الصلب","الفلاش"] } ] },
+    { id:"electrical", name:"قسم الهندسة الكهربائية", q:[
+      { q:"قانون أوم؟", a:["V = I × R","P = I × R","V = I / R","F = m × a"] },
+      { q:"وحدة قياس المقاومة الكهربائية؟", a:["الأوم","الفولت","الأمبير","الواط"] },
+      { q:"تردد الكهرباء الوطنية في العراق؟", a:["50 هرتز","60 هرتز","100 هرتز","220 هرتز"] } ] },
+    { id:"biomedical", name:"قسم هندسة الأجهزة الطبية", q:[
+      { q:"جهاز تخطيط القلب يُختصر؟", a:["ECG","EEG","EMG","MRI"] },
+      { q:"جهاز تخطيط الدماغ يُختصر؟", a:["EEG","ECG","CT","EMG"] },
+      { q:"جهاز صدمة القلب الكهربائية؟", a:["Defibrillator","Ventilator","Incubator","Nebulizer"] } ] },
+    { id:"mechanical", name:"قسم الهندسة الميكانيكية", q:[
+      { q:"قانون نيوتن الثاني؟", a:["F = m × a","V = I × R","E = m × c²","P = F / A"] },
+      { q:"وحدة قياس القوة؟", a:["النيوتن","الجول","الواط","الباسكال"] },
+      { q:"وحدة قياس الضغط؟", a:["الباسكال","النيوتن","الجول","الكلفن"] } ] }
+  ],
+  science: [
+    { id:"biology", name:"قسم علوم الحياة", q:[
+      { q:"العضية المسؤولة عن إنتاج الطاقة في الخلية؟", a:["المايتوكوندريا","الرايبوسوم","جهاز كولجي","الفجوة"] },
+      { q:"عملية صنع الغذاء في النبات؟", a:["البناء الضوئي","التنفس","التخمر","الهضم"] },
+      { q:"عدد كروموسومات الإنسان؟", a:["46","23","48","44"] } ] },
+    { id:"chemistry", name:"قسم الكيمياء", q:[
+      { q:"الرمز الكيميائي للصوديوم؟", a:["Na","S","So","Sd"] },
+      { q:"الرقم الهيدروجيني (pH) للماء النقي؟", a:["7","0","14","1"] },
+      { q:"الغاز الأكثر وفرة في الهواء الجوي؟", a:["النيتروجين","الأوكسجين","ثاني أوكسيد الكاربون","الهيدروجين"] } ] },
+    { id:"physics", name:"قسم الفيزياء", q:[
+      { q:"سرعة الضوء في الفراغ تقريباً؟", a:["300,000 كم/ثا","300 كم/ثا","3,000 كم/ثا","30,000 كم/ثا"] },
+      { q:"وحدة قياس الطاقة؟", a:["الجول","النيوتن","الواط","الأمبير"] },
+      { q:"تعجيل الجاذبية الأرضية تقريباً؟", a:["9.8 م/ثا²","1 م/ثا²","98 م/ثا²","3.2 م/ثا²"] } ] },
+    { id:"math", name:"قسم الرياضيات", q:[
+      { q:"مشتقة x² ؟", a:["2x","x","x²","2"] },
+      { q:"قيمة π تقريباً؟", a:["3.14","2.71","1.61","3.41"] },
+      { q:"مجموع زوايا المثلث؟", a:["180°","360°","90°","270°"] } ] }
+  ],
+  cs: [
+    { id:"cs_main", name:"قسم علوم الحاسوب", q:[
+      { q:"لغة تصميم هيكل صفحات الويب؟", a:["HTML","SQL","C++","Python"] },
+      { q:"هيكل البيانات الذي يعمل بمبدأ LIFO؟", a:["Stack","Queue","Array","Tree"] },
+      { q:"كم بت في البايت الواحد؟", a:["8","4","16","10"] } ] },
+    { id:"cyber", name:"قسم الأمن السيبراني", q:[
+      { q:"التصيّد الاحتيالي بالإنكليزي؟", a:["Phishing","Firewall","Backup","Router"] },
+      { q:"الجدار الناري (Firewall) وظيفته؟", a:["مراقبة وفلترة حركة الشبكة","تسريع الإنترنت","تخزين الملفات","طباعة البيانات"] },
+      { q:"أقوى كلمة مرور من هذي؟", a:["T7#qL!9xR2","123456","password","ali2000"] } ] },
+    { id:"ai", name:"قسم الذكاء الاصطناعي", q:[
+      { q:"Machine Learning تعني؟", a:["تعلّم الآلة","هندسة الشبكات","قواعد البيانات","أمن المعلومات"] },
+      { q:"اختبار تورنغ يقيس؟", a:["قدرة الآلة على محاكاة ذكاء الإنسان","سرعة المعالج","حجم الذاكرة","سرعة الإنترنت"] },
+      { q:"الشبكات العصبية الاصطناعية مستوحاة من؟", a:["دماغ الإنسان","شبكة الإنترنت","الدوائر الكهربائية","خلايا النبات"] } ] }
+  ],
+  admin: [
+    { id:"business", name:"قسم إدارة الأعمال", q:[
+      { q:"وظائف الإدارة الأساسية تبدأ بـ؟", a:["التخطيط","الرقابة","التوظيف","التسويق"] },
+      { q:"تحليل SWOT يدرس؟", a:["القوة والضعف والفرص والتهديدات","المبيعات فقط","الرواتب","الضرائب"] },
+      { q:"المزيج التسويقي التقليدي يُسمى؟", a:["4P","SWOT","KPI","ROI"] } ] },
+    { id:"accounting", name:"قسم المحاسبة", q:[
+      { q:"معادلة الميزانية الأساسية؟", a:["الموجودات = المطلوبات + حقوق الملكية","الموجودات = الإيرادات","الربح = المطلوبات","المصاريف = حقوق الملكية"] },
+      { q:"نظام القيد المزدوج يعني كل عملية تُسجَّل في؟", a:["حسابين: مدين ودائن","حساب واحد","ثلاث حسابات","دفتر اليومية فقط"] },
+      { q:"الكشف الذي يبين الربح أو الخسارة؟", a:["كشف الدخل","الميزانية العمومية","ميزان المراجعة","دفتر الأستاذ"] } ] },
+    { id:"economics", name:"قسم الاقتصاد", q:[
+      { q:"إذا زاد الطلب وبقي العرض ثابت، السعر؟", a:["يرتفع","ينخفض","يبقى ثابت","يصير صفر"] },
+      { q:"التضخم يعني؟", a:["ارتفاع عام ومستمر في الأسعار","انخفاض الأسعار","زيادة الرواتب فقط","ثبات الأسعار"] },
+      { q:"الناتج المحلي الإجمالي يُختصر؟", a:["GDP","CPI","IMF","ROI"] } ] },
+    { id:"banking", name:"قسم العلوم المالية والمصرفية", q:[
+      { q:"البنك المركزي العراقي مسؤول عن؟", a:["إصدار العملة والسياسة النقدية","جمع الضرائب","بناء الطرق","التجارة الخارجية فقط"] },
+      { q:"الفائدة البسيطة تُحسب على؟", a:["أصل المبلغ فقط","الأصل والفوائد السابقة","الأرباح فقط","الضرائب"] },
+      { q:"السيولة تعني؟", a:["سهولة تحويل الأصل إلى نقد","الديون طويلة الأجل","الأرباح السنوية","رأس المال الثابت"] } ] }
+  ],
+  islamic: [
+    { id:"sharia", name:"قسم الشريعة", q:[
+      { q:"أركان الصلاة تبطل الصلاة بتركها؟", a:["عمداً وسهواً","عمداً فقط","سهواً فقط","لا تبطل"] },
+      { q:"الأحكام التكليفية الخمسة تبدأ بـ؟", a:["الواجب","المباح","المكروه","المستحب"] },
+      { q:"الخمس من فروع الدين؟", a:["نعم","لا","من أصول الدين","مستحب فقط"] } ] },
+    { id:"usul", name:"قسم أصول الدين", q:[
+      { q:"عدد أصول الدين عند الإمامية؟", a:["5","3","10","7"] },
+      { q:"أول أصول الدين؟", a:["التوحيد","العدل","النبوة","المعاد"] },
+      { q:"عدد الأئمة المعصومين (ع)؟", a:["12","11","14","7"] } ] },
+    { id:"quran", name:"قسم علوم القرآن", q:[
+      { q:"عدد سور القرآن الكريم؟", a:["114","110","120","99"] },
+      { q:"أطول سورة في القرآن؟", a:["البقرة","آل عمران","النساء","يس"] },
+      { q:"السورة التي لا تبدأ بالبسملة؟", a:["التوبة","الفاتحة","الكهف","الملك"] } ] }
+  ],
+  education: [
+    { id:"arabic", name:"قسم اللغة العربية", q:[
+      { q:"الفاعل في اللغة العربية يكون؟", a:["مرفوعاً","منصوباً","مجروراً","مجزوماً"] },
+      { q:"«كان وأخواتها» ترفع المبتدأ و؟", a:["تنصب الخبر","ترفع الخبر","تجر الخبر","تجزم الخبر"] },
+      { q:"صاحب ألفية ابن مالك؟", a:["ابن مالك","سيبويه","المتنبي","الخليل"] } ] },
+    { id:"english", name:"قسم اللغة الإنكليزية", q:[
+      { q:"Past tense of «go»؟", a:["went","goed","gone","going"] },
+      { q:"Plural of «child»؟", a:["children","childs","childes","child"] },
+      { q:"Opposite of «ancient»؟", a:["modern","old","antique","early"] } ] },
+    { id:"edu_math", name:"قسم الرياضيات", q:[
+      { q:"الجذر التربيعي لـ 144؟", a:["12","14","11","16"] },
+      { q:"مساحة الدائرة؟", a:["π نق²","2π نق","π قطر","نق²"] },
+      { q:"5! (مضروب 5) يساوي؟", a:["120","25","60","720"] } ] },
+    { id:"edu_bio", name:"قسم علوم الحياة", q:[
+      { q:"وحدة بناء الكائن الحي؟", a:["الخلية","النسيج","العضو","الجهاز"] },
+      { q:"المادة الوراثية في الخلية؟", a:["DNA","ATP","الكلوروفيل","الأنسولين"] },
+      { q:"العالم صاحب نظرية الوراثة (البازلاء)؟", a:["مندل","داروين","باستور","فلمنج"] } ] },
+    { id:"edu_psych", name:"قسم العلوم التربوية والنفسية", q:[
+      { q:"هرم الحاجات يرتبط باسم؟", a:["ماسلو","سكنر","بياجيه","بافلوف"] },
+      { q:"الدافعية الداخلية تعني أن الطالب يتعلم؟", a:["لرغبته الذاتية","للحصول على جائزة فقط","خوفاً من العقاب","لإرضاء الأهل فقط"] },
+      { q:"التعزيز الإيجابي يعني؟", a:["إضافة شيء محبب بعد السلوك","إزالة شيء مزعج","العقاب","تجاهل السلوك"] } ] }
+  ]
+};
+
 </script>
 <script>
 (async () => {
@@ -618,12 +768,13 @@ const SND = (() => {
   return api;
 })();
 
-const sel = { gender:'boy', college:null, stage:1 };
+const sel = { gender:'boy', college:null, dept:null, stage:1 };
 const LANE = 2.2, ROAD_HALF = 3.6;
 let G = null, mode = 'menu';
 
 // ================= THREE setup =================
 const renderer = new THREE.WebGLRenderer({ canvas:$('game'), antialias:true });
+$('game').addEventListener('webglcontextlost', e=>e.preventDefault());
 renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -926,13 +1077,24 @@ document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show(b.d
 DATA.colleges.forEach(col => {
   const b = document.createElement('button'); b.className='col';
   b.innerHTML = `<span class="ic">${col.icon}</span><span>${col.name}</span><small style="color:var(--muted)">${col.stages} مراحل</small>`;
-  b.onclick = () => { sel.college = col; buildStages(); show('sStage'); };
+  b.onclick = () => { sel.college = col; sel.dept = null; const ds = deptsOf(col);
+    if(ds.length>1){ buildDepts(ds); show('sDept'); } else { sel.dept = ds[0]||null; buildStages(); show('sStage'); } };
   $('collegeGrid').appendChild(b);
 });
+function deptsOf(col){ return ((DATA.departments||{})[col.id]) || []; }
+function buildDepts(ds){
+  const g = $('deptGrid'); g.innerHTML='';
+  $('deptTitle').textContent = `${sel.college.icon} ${sel.college.name}`;
+  for(const d of ds){ const b=document.createElement('button'); b.className='col';
+    b.innerHTML = `<span>${d.name}</span>`; b.onclick = () => { sel.dept = d; buildStages(); show('sStage'); }; g.appendChild(b); }
+}
+$('stageBack').onclick = () => show(deptsOf(sel.college).length>1 ? 'sDept' : 'sCollege');
+function stageCount(){ return (sel.dept && sel.dept.stages) || sel.college.stages; }
+function placeLabel(){ return sel.dept ? sel.dept.name : sel.college.name; }
 function buildStages(){
   const g = $('stageGrid'); g.innerHTML='';
-  $('stageTitle').textContent = `${sel.college.icon} ${sel.college.name}`;
-  for(let i=1;i<=sel.college.stages;i++){
+  $('stageTitle').textContent = `${sel.college.icon} ${placeLabel()}`;
+  for(let i=1;i<=stageCount();i++){
     const b=document.createElement('button'); b.className='stage'; b.textContent = 'المرحلة ' + (STAGE_NAMES[i-1]||i);
     b.onclick = () => { sel.stage = i; startGame(); };
     g.appendChild(b);
@@ -943,13 +1105,15 @@ function buildStages(){
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function questionPool(){
   const bank = (DATA.questions||{})[sel.college.id] || {};
-  return { st: shuffle((bank[sel.stage]||[]).map(q=>({...q,src:'stage'}))), gen: shuffle((bank.general||[]).map(q=>({...q,src:'general'}))) };
+  const d = sel.dept || {};
+  const st = [...(bank[sel.stage]||[]).map(q=>({...q,src:'stage'})), ...(d[sel.stage]||[]).map(q=>({...q,src:'stage'})), ...(d.q||[]).map(q=>({...q,src:'dept'}))];
+  return { st: shuffle(st), gen: shuffle((bank.general||[]).map(q=>({...q,src:'general'}))) };
 }
 function nextQuestion(){ if(!G.pool.st.length && !G.pool.gen.length) G.pool = questionPool(); return G.pool.st.shift() || G.pool.gen.shift() || null; }
 
 // ================= game =================
 const Q_INTERVAL = 20;
-function clearObjs(){ if(!G) return; for(const o of G.objs) world.remove(o.mesh); for(const s of G.scenery) world.remove(s.mesh); }
+function clearObjs(){ if(!G) return; for(const o of G.objs) dropMesh(o.mesh); for(const s of G.scenery) dropMesh(s.mesh); }
 function startGame(){
   SND.init(); SND.music(true); SND.duck(false);
   clearObjs();
@@ -959,7 +1123,7 @@ function startGame(){
         qTimer:8, teacherDue:false, teacherOn:false, qAsked:0, qRight:0, wrong:[], pool:questionPool(), shake:0 };
   for(let z=2; z<110; z+=8) spawnScenery(z);
   setCampusSign();
-  $('hCollege').textContent = `${sel.college.icon} ${sel.college.name} · المرحلة ${STAGE_NAMES[sel.stage-1]||sel.stage}`;
+  $('hCollege').textContent = `${sel.college.icon} ${placeLabel()} · المرحلة ${STAGE_NAMES[sel.stage-1]||sel.stage}`;
   hideAll(); $('hud').classList.add('show'); updateHUD();
   countdown(() => { mode='run'; });
 }
@@ -1000,7 +1164,7 @@ function bench(){
 }
 function building(side){
   const g = new THREE.Group(); const h = 4+Math.random()*4, w = 5+Math.random()*3;
-  const tex = (Math.random()<.5?winTexA:winTexB).clone(); tex.needsUpdate=true; tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(Math.round(w/3), Math.round(h/2.5));
+  const tex = (Math.random()<.5?winTexA:winTexB).clone(); tex._own=true; tex.needsUpdate=true; tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(Math.round(w/3), Math.round(h/2.5));
   const b = mesh(new THREE.BoxGeometry(w,h,w*0.9), TM(tex)); b.position.y=h/2; g.add(b);
   const r = mesh(new THREE.BoxGeometry(w+0.3,0.35,w*0.9+0.3), M(C.navy)); r.position.y=h+0.17; g.add(r);
   g.userData.w = w; return g;
@@ -1020,6 +1184,16 @@ function spawnScenery(z){
 // --- gameplay objects ---
 const coinGeo = new THREE.CylinderGeometry(0.34,0.34,0.08,24);
 const coinMats = [ M(C.gold), TM(coinTex), TM(coinTex) ];
+// free GPU memory of removed objects (without this, long runs filled the phone's GPU and the screen went white)
+function disposeTree(root){
+  const shared = new Set([...Object.values(matCache), ...coinMats]);
+  root.traverse(n=>{
+    if(n.geometry && n.geometry!==coinGeo && !n.isSprite) n.geometry.dispose();
+    const mats = n.material ? (Array.isArray(n.material)?n.material:[n.material]) : [];
+    for(const m of mats){ if(shared.has(m)) continue; if(m.map && m.map._own) m.map.dispose(); m.dispose(); }
+  });
+}
+function dropMesh(m){ world.remove(m); disposeTree(m); }
 function makeObj(type, extra){
   let m;
   if(type==='grade'){ m = new THREE.Mesh(coinGeo, coinMats); m.castShadow=true; m.rotation.x = Math.PI/2; const g=new THREE.Group(); g.add(m); m=g; }
@@ -1147,9 +1321,9 @@ function hit(){
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function gameOver(){
   mode='over'; SND.duck(true); $('hud').classList.remove('show');
-  const key='best_'+sel.college.id, best=Math.max(G.grades, +(store.get(key)||0)); store.set(key,best);
+  const key='best_'+sel.college.id+(sel.dept?'_'+sel.dept.id:''), best=Math.max(G.grades, +(store.get(key)||0)); store.set(key,best);
   $('oGrades').textContent=G.grades; $('oCorrect').textContent=`${G.qRight}/${G.qAsked}`; $('oHelped').textContent=G.helped; $('oBest').textContent=best;
-  $('overSub').textContent = `${sel.college.name} · المرحلة ${STAGE_NAMES[sel.stage-1]||sel.stage}`;
+  $('overSub').textContent = `${placeLabel()} · المرحلة ${STAGE_NAMES[sel.stage-1]||sel.stage}`;
   $('oReview').innerHTML = G.wrong.length ? '<b>راجع هاي الأسئلة:</b><br>' + G.wrong.map(w=>`• ${esc(w.q)} ← <b style="color:var(--ok)">${esc(w.a)}</b>`).join('<br>') : (G.qAsked ? 'كل أجوبتك صحيحة، عاشت إيدك!' : '');
   show('sOver');
 }
@@ -1160,7 +1334,7 @@ function askQuestion(){
   const q = nextQuestion(); if(!q) return;
   mode='question'; G.qAsked++; SND.question(); SND.duck(true);
   const correct=q.a[0], opts=shuffle(q.a);
-  $('qTag').textContent = `${sel.college.icon} ${sel.college.name} · ${q.src==='stage' ? 'المرحلة '+(STAGE_NAMES[sel.stage-1]||sel.stage) : 'سؤال عام'}`;
+  $('qTag').textContent = `${sel.college.icon} ${placeLabel()} · ${q.src==='stage' ? 'المرحلة '+(STAGE_NAMES[sel.stage-1]||sel.stage) : q.src==='dept' ? 'سؤال القسم' : 'سؤال عام'}`;
   $('qText').textContent = q.q; $('qFeedback').textContent=''; $('qCont').style.display='none';
   const box=$('qAnswers'); box.innerHTML='';
   opts.forEach(o=>{ const b=document.createElement('button'); b.className='ans'; b.textContent=o; b.onclick=()=>answer(o,correct,q); box.appendChild(b); });
@@ -1228,8 +1402,8 @@ function update(dt){
       if(o.pop!==undefined){ o.pop-=dt; o.mesh.scale.setScalar(Math.max(0.01,o.pop*3.7)); } }
     else if(o.type==='hurdle' && o.knock){ o.mesh.rotation.x = Math.max(-1.5, o.mesh.rotation.x - dt*8); }
   }
-  G.objs = G.objs.filter(o=>{ const keep = o.z > -8-(o.len||0) && !(o.pop!==undefined && o.pop<=0); if(!keep) world.remove(o.mesh); return keep; });
-  G.scenery = G.scenery.filter(s=>{ const keep = s.z > -12; if(!keep) world.remove(s.mesh); return keep; });
+  G.objs = G.objs.filter(o=>{ const keep = o.z > -8-(o.len||0) && !(o.pop!==undefined && o.pop<=0); if(!keep) dropMesh(o.mesh); return keep; });
+  G.scenery = G.scenery.filter(s=>{ const keep = s.z > -12; if(!keep) dropMesh(s.mesh); return keep; });
   road.material.map.offset.y = (G.dist / TILE) % 1;
   if(((G.t*10)|0)%3===0) updateHUD();
 }
