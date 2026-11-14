@@ -544,8 +544,11 @@ const SND = (() => {
   const voices = {};
   for(const g of ['boy','girl']) for(const k of ['hello','thanks','sad']){ const a = new Audio(VOICE_DATA[g+'-'+k]); a.preload='auto'; a.volume=0.9; voices[g+'-'+k]=a; }
   let lastVoice = 0;
+  // voices also decoded into Web Audio buffers: phones (iOS Safari) block <audio>.play() outside a tap, Web Audio is unlocked once
+  const vbuf = {};
+  function loadVoices(){ for(const key in voices){ fetch(voices[key].src).then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no))).then(buf=>{ vbuf[key]=buf; }).catch(()=>{}); } }
   function init(){
-    if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = muted?0:1; master.connect(ctx.destination); }catch(e){} }
+    if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = muted?0:1; master.connect(ctx.destination); loadVoices(); }catch(e){} }
     if(ctx && ctx.state==='suspended') ctx.resume();
   }
   let noiseBuf=null;
@@ -615,7 +618,9 @@ const SND = (() => {
     help(){ [784,988,1175].forEach((f,i)=>tone({ f, dur:0.14, vol:0.05, type:'triangle', delay:i*0.06 })); },
     voice(gender, kind, force){
       if(muted) return; const now=performance.now(); if(!force && now-lastVoice < 1800) return;
-      const a = voices[gender+'-'+kind]; if(!a) return; lastVoice = now;
+      const key=gender+'-'+kind, buf=vbuf[key];
+      if(buf && ctx){ lastVoice = now; if(ctx.state==='suspended') ctx.resume(); const src=ctx.createBufferSource(); src.buffer=buf; const g=ctx.createGain(); g.gain.value=1.4; src.connect(g); g.connect(master); src.start(); window.__voiceLog&&window.__voiceLog.push(key); return; }
+      const a = voices[key]; if(!a) return; lastVoice = now;
       try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){}
     }
   };
